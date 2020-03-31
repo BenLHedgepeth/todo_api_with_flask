@@ -6,9 +6,9 @@ from os.path import abspath, dirname
 from flask import url_for
 from peewee import *
 
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+sys.path.insert(1, dirname(dirname(abspath(__file__))))
 
-from .. import app
+# from .todos import app
 
 test_db = SqliteDatabase(":memory:")
 
