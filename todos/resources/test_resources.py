@@ -1,11 +1,18 @@
 import sys
 import unittest
 
+from os.path import abspath, dirname
+
 from flask import url_for
 from peewee import *
 
-# from todos import app
-from .todos.models import User, Todo
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
+
+from todos import models
+
+
+
+
 
 
 test_db = SqliteDatabase(":memory:")
@@ -41,10 +48,10 @@ class TestTodoCollection(ApiTestCaseSetup):
         super().setUp()
 
     def test_todo_collection_resource(self):
-        todo_list = Todo.select()
-        print(todo_list)
+        pass
 
 
 if __name__ == '__main__':
-    print(sys.path)
+    print(todos.app.app)
+    # print(Todo.select())
     # unittest.main()
