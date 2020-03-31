@@ -8,12 +8,7 @@ from peewee import *
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from todos import models
-
-
-
-
-
+from .. import app
 
 test_db = SqliteDatabase(":memory:")
 
@@ -52,6 +47,6 @@ class TestTodoCollection(ApiTestCaseSetup):
 
 
 if __name__ == '__main__':
-    print(todos.app.app)
+    print(sys.path)
     # print(Todo.select())
     # unittest.main()
