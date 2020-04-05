@@ -3,9 +3,12 @@ from config import HOST, PORT, DEBUG
 
 from peewee import *
 
+
 import models
+from resources.todos import todo_api
 
 app = Flask(__name__)
+app.register_blueprint(todo_api, url_prefix="/api/v1/todos")
 
 models.DATABASE.init('todo_api.db')
 models.initialize(models.User, models.Todo)

@@ -4,7 +4,6 @@ from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
 from peewee import *
 
-import config
 
 DATABASE = SqliteDatabase(None)
 
