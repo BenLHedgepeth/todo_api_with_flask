@@ -7,24 +7,26 @@ from peewee import *
 
 DATABASE = SqliteDatabase(None)
 
-class AbstractModel(Model):
+class _Model(Model):
     class Meta:
         database = DATABASE
 
-class Todo(AbstractModel):
-    name = CharField(unique=True)
 
-    def __str__(self):
-        return self.name
-        
-
-class User(AbstractModel):
+class User(_Model):
     username = CharField(unique=True)
     password = CharField()
-    todos = ForeignKeyField(Todo, related_name="todos")
 
     def __str__(self):
         return self.username
+
+
+class Todo(_Model):
+    name = CharField(unique=True)
+    user = ForeignKeyField(User, related_name="todos")
+
+    def __str__(self):
+        return self.name
+
 
 
 def initialize(*args, **kwargs):
