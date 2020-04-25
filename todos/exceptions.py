@@ -1,0 +1,3 @@
+
+class PasswordMatchError(Exception):
+    pass

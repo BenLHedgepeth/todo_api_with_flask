@@ -1,17 +1,24 @@
-import base64
+from base64 import b64encode
 import unittest
+import sys
+import json
 
-from flask import url_for
+
+
+from flask import url_for, g
 from peewee import *
 
 from app import app
 from models import User, Todo
-
+from auth import verify_password
 
 
 DATABASE = SqliteDatabase(':memory:')
 
+
+
 class ApiTestCase(unittest.TestCase):
+    '''Create tables and instantiate database'''
 
     def setUp(self):
 
@@ -32,7 +39,9 @@ class ApiTestCase(unittest.TestCase):
 
         for i, todo in enumerate(self.todo_resources):
             try:
-                user = User.create(**self.users[i])
+                user = User(username=self.users[i]['username'])
+                user.password = user.set_password(self.users[i]['password'])
+                user.save()
             except IndexError:
                 user = User.get_by_id(i)
                 todo.update({'user': user})
@@ -48,9 +57,23 @@ class ApiTestCase(unittest.TestCase):
             DATABASE.drop_tables([User, Todo])
 
 
-class TestTodoCollection(ApiTestCase):
+class TestVerifyPassword(ApiTestCase):
+    '''Verify that a user's credentials validates
+    and the user is enabled to access login required
+    protected resources.'''
+
+    def test_verify_password_callback(self):
+        '''NOTE: The global object "g" is being set within
+        this function and an application context is required'''
+
+        with app.test_request_context():
+            user_verified = verify_password("User_1", 'secret1')
+        self.assertTrue(user_verified)
+
+
+class TestNoTodoCollection(ApiTestCase):
     '''Verify that a HTTP response returns a 404 status status code
-    when there are no Todo resources in the TodoCollection resource'''
+    when there are no Todo resources in the TodoCollection resource [GET]'''
 
     def setUp(self):
         super().setUp()
@@ -66,39 +89,195 @@ class TestTodoCollection(ApiTestCase):
         super().tearDown()
 
 
-class TestTodoCollection_002(ApiTestCase):
+class TestTodoCollection(ApiTestCase):
     '''Verify that a representation of all todo resources
-    are sent back to the client with a 200 status code.'''
-
-    def setUp(self):
-        super().setUp()
+    are sent back to the client with a 200 status code [GET].'''
 
     def test_todo_collection_resource(self):
         with app.test_client() as client:
             http_response = client.get("/api/v1/todos/")
         self.assertEqual(http_response.status_code, 200)
 
-        def tearDown(self):
-            super().tearDown()
 
+class TestTodoResource(ApiTestCase):
+    '''Verify that a 200 status code is sent back to the
+    client to indicate a resource was successfully found [GET].'''
+
+    def test_get_todo_resource_success(self):
+        with app.test_client() as client:
+            http_response = client.get("api/v1/todos/2")
+            todo_resource_name = http_response.get_json()['todo']
+
+        self.assertEqual(http_response.status_code, 200)
+        self.assertEqual(todo_resource_name['name'], 'Task2')
+
+
+class TestNoTodoResource(ApiTestCase):
+    '''Verify that a 404 status code is sent back to the client
+    when a resource with a given id does not exist [GET].'''
+    def test_get_todo_resource_not_found(self):
+        with app.test_client() as client:
+            http_response = client.get("api/v1/todos/8")
+
+        self.assertEqual(http_response.status_code, 404)
+
+
+class TestApiUserCollection(ApiTestCase):
+    '''Verify that a 404 status code is sent back to the
+    client when there is no ApiUser collection resource [GET]'''
+
+    def setUp(self):
+        super().setUp()
+        delete_users = User.delete().where(Todo.id >= 1)
+        delete_users.execute()
+
+    def test_get_api_user_collection(self):
+        with app.test_client() as client:
+            http_response = client.get('api/v1/users/')
+
+        self.assertEqual(http_response.status_code, 404)
+
+
+class TestCreateNewApiUserResource(ApiTestCase):
+    '''Verify that a client creates a new ApiUser resource [POST].'''
+    def setUp(self):
+        super().setUp()
+        self.previous_user_count = User.select().count()
+
+    def test_post_create_user_success(self):
+
+        with app.test_client() as client:
+            http_response = client.post(
+                'api/v1/users/',
+                content_type="application/json",
+                data=json.dumps({
+                    'username': 'User_101',
+                    'password': 'mypassword',
+                    'verify_password': 'mypassword'
+                })
+            )
+            new_user = http_response.get_json()['user']['username']
+            new_user_url = http_response.headers.get("Location")
+
+        current_user_count = User.select().count()
+
+        self.assertEqual(http_response.status_code, 201)
+        self.assertGreater(current_user_count, self.previous_user_count)
+        self.assertEqual(new_user, "User_101")
+        self.assertEqual(new_user_url, 'http://localhost/api/v1/users/3/')
+
+
+class TestCreateNewApiUserResource_002(ApiTestCase):
+    '''Verify that a client gets a 400 status code
+    when the passwords don't match [POST].'''
+
+    def test_post_create_user_invalid_password(self):
+        with app.test_client() as client:
+            http_response = client.post(
+                'api/v1/users/',
+                content_type="application/json",
+                data=json.dumps({
+                    'username': 'User_101',
+                    'password': 'mypassword',
+                    'verify_password': 'notmypassword'
+                })
+            )
+
+
+        self.assertEqual(http_response.status_code, 400)
+
+class TestVerifyApiUserToken(ApiTestCase):
+
+    def setUp(self):
+        super().setUp()
+        user = User.get_by_id(1)
+        token_serializer = Serializer(SECRET_KEY)
+        self.key = token_serializer.dumps({'id': user.id})
+
+class TestApiTokenRequest(ApiTestCase):
+    '''Verify that an user that is logged in and
+    receives an api token'''
+
+    def test_issue_api_token(self):
+        with app.test_client() as client:
+            http_response = client.get(
+                "/api/v1/users/token",
+                content_type="application/json",
+                headers={
+                    'Authorization': b'Basic ' + b64encode(b"User_1:secret1")
+                }
+            )
+            json_data = http_response.get_json()
+        self.assertEqual(http_response.status_code, 200)
+        self.assertIn('token', json_data)
+
+class TestUnauthorizedTodoPost(ApiTestCase):
+    '''Verify that a client receives a 401 status code
+    when they aren't authenticated to add a Todo [POST]'''
+
+    def test_post_todo_resource_fail(self):
+        with app.test_client() as client:
+            http_response = client.post(
+                '/api/v1/todos/',
+                content_type="application/json",
+                data=json.dumps({
+                    "name": "Must do todo",
+                    "user": 1
+                })
+            )
+            error_response = http_response.get_json()['unauthorized']
+
+        self.assertEqual(http_response.status_code, 401)
+        self.assertEqual(error_response, "Cannot add Todo. Login required.")
+
+
+# class TestAuthenticatedUserTodoPost(ApiTestCase):
+#         def test_issue_api_token(self):
+#             user_credentials = b64encode(b"User_1:secret1").decode()
+#             with app.test_client() as client:
+#                 http_response = client.post(
+#                     "/api/v1/todos/",
+#                     content_type="application/json",
+#                     headers={
+#                         "Authorization": f"Basic {user_credentials}"
+#                     },
+#                     data=json.dumps({
+#                         'name': "Must do todo",
+#                         'user': 1
+#                     })
+#                 )
 #
-# class TestApiUserCollection(ApiTestCase):
-#     '''Verify that a 404 status code is sent back to the
-#     client when there is no ApiUser collection resource'''
+#             self.assertEqual(http_response.status_code, 201)
 #
-#     def setUp(self):
-#         super().setUp()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# class TestPostUserCollection(ApiTestCase):
+#     '''Verify that a new user is created'''
 #
-#     def test_get_api_user_collection(self):
+#     def test_user_collection_user_added(self):
 #         with app.test_client() as client:
-#             http_response = client.get('api/v1/users/')
-#
-#         self.assertEqual(http_response.status_code, 404)
-#
-#
-#
-#     def setUp(self):
-#         super().tearDown()
+#             http_response = client.post(
+#                 "api/v1/users",
+#                 data='''{
+#                     "username": 'User_3',
+#                     "password": secret3,
+#                     "verify_password: secret3"
+#                 }'''
+#             )
+
 
 # class TestGetUserResource(ApiTestCase):
 #     '''Verify that a representation of a User resource

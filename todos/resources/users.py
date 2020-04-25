@@ -1,9 +1,15 @@
 
+import sys
+
+from os.path import abspath, dirname
+
 from flask import Blueprint, abort
 
-from flask_restful import Api, Resource, fields, marshal
+from flask_restful import Api, Resource, fields, marshal, reqparse
 
 from models import User
+
+from exceptions import PasswordMatchError
 
 user_api = Blueprint('resources.users', __name__)
 api = Api(user_api)
@@ -14,11 +20,31 @@ user_fields = {
 
 class ApiUserCollection(Resource):
 
+    request_parser = reqparse.RequestParser(trim=True, bundle_errors=True)
+    request_parser.add_argument('username', required=True, location=['form', 'json'])
+    request_parser.add_argument('password', required=True)
+    request_parser.add_argument('verify_password', required=True)
+
     def get(self):
         api_users = User.select()
         if not api_users.count():
             abort(404, description="No users currently exist")
         return [marshal(api_user, user_fields) for api_user in api_users]
+
+    def post(self):
+        args = self.request_parser.parse_args()
+        try:
+            new_user = User.create_user(**args)
+        except PasswordMatchError as e:
+            abort(400, description=e)
+        else:
+            if new_user:
+                return (
+                    marshal(new_user, user_fields, 'user'),
+                    201, {'Location': f'api/v1/users/{new_user.id}/'}
+                )
+            return
+
 
 api.add_resource(
     ApiUserCollection,
