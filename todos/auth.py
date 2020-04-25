@@ -11,7 +11,6 @@ auth = MultiAuth(token_auth, basic_auth)
 @basic_auth.verify_password
 def verify_password(username, password):
     try:
-        import pdb; pdb.set_trace()
         api_user = User.get(User.username == username)
     except User.DoesNotExist:
         return False
