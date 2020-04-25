@@ -24,9 +24,12 @@ def not_found(e):
 def bad_request(e):
     return jsonify(error=str(e)), 400
 
-@auth.login_required
 @app.route("/api/v1/users/token")
+@auth.login_required
 def issue_api_token():
+    '''NOTE: @login_required must be declared below the Flask route
+    or else "g" doesn\'t retain state for this view'''
+    print('user' in dir(g))
     token = g.user.request_token()
     return jsonify({'token': token})
 
