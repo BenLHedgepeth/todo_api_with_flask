@@ -145,7 +145,6 @@ class TestCreateNewApiUserResource(ApiTestCase):
         self.previous_user_count = User.select().count()
 
     def test_post_create_user_success(self):
-
         with app.test_client() as client:
             http_response = client.post(
                 'api/v1/users/',
@@ -186,30 +185,30 @@ class TestCreateNewApiUserResource_002(ApiTestCase):
 
         self.assertEqual(http_response.status_code, 400)
 
-class TestVerifyApiUserToken(ApiTestCase):
+# class TestVerifyApiUserToken(ApiTestCase):
+#
+#     def setUp(self):
+#         super().setUp()
+#         user = User.get_by_id(1)
+#         token_serializer = Serializer(SECRET_KEY)
+#         self.key = token_serializer.dumps({'id': user.id})
 
-    def setUp(self):
-        super().setUp()
-        user = User.get_by_id(1)
-        token_serializer = Serializer(SECRET_KEY)
-        self.key = token_serializer.dumps({'id': user.id})
-
-class TestApiTokenRequest(ApiTestCase):
-    '''Verify that an user that is logged in and
-    receives an api token'''
-
-    def test_issue_api_token(self):
-        with app.test_client() as client:
-            http_response = client.get(
-                "/api/v1/users/token",
-                content_type="application/json",
-                headers={
-                    'Authorization': b'Basic ' + b64encode(b"User_1:secret1")
-                }
-            )
-            json_data = http_response.get_json()
-        self.assertEqual(http_response.status_code, 200)
-        self.assertIn('token', json_data)
+# class TestApiTokenRequest(ApiTestCase):
+#     '''Verify that an user that is logged in and
+#     receives an api token'''
+#
+#     # def test_issue_api_token(self):
+#     #     with app.test_client() as client:
+#     #         http_response = client.get(
+#     #             "/api/v1/users/token",
+#     #             content_type="application/json",
+#     #             headers={
+#     #                 'Authorization': b'Basic ' + b64encode(b"User_1:secret1")
+#     #             }
+#     #         )
+#     #         json_data = http_response.get_json()
+#     #     self.assertEqual(http_response.status_code, 200)
+#     #     self.assertIn('token', json_data)
 
 class TestUnauthorizedTodoPost(ApiTestCase):
     '''Verify that a client receives a 401 status code
@@ -231,23 +230,23 @@ class TestUnauthorizedTodoPost(ApiTestCase):
         self.assertEqual(error_response, "Cannot add Todo. Login required.")
 
 
-# class TestAuthenticatedUserTodoPost(ApiTestCase):
-#         def test_issue_api_token(self):
-#             user_credentials = b64encode(b"User_1:secret1").decode()
-#             with app.test_client() as client:
-#                 http_response = client.post(
-#                     "/api/v1/todos/",
-#                     content_type="application/json",
-#                     headers={
-#                         "Authorization": f"Basic {user_credentials}"
-#                     },
-#                     data=json.dumps({
-#                         'name': "Must do todo",
-#                         'user': 1
-#                     })
-#                 )
-#
-#             self.assertEqual(http_response.status_code, 201)
+class TestAuthenticatedUserTodoPost(ApiTestCase):
+        def test_issue_api_token(self):
+            user_credentials = b64encode(b"User_1:secret1").decode()
+            with app.test_client() as client:
+                http_response = client.post(
+                    "/api/v1/todos/",
+                    content_type="application/json",
+                    headers={
+                        "Authorization": f"Basic {user_credentials}"
+                    },
+                    data=json.dumps({
+                        'name': "Must do todo",
+                        'user': 1
+                    })
+                )
+
+            self.assertEqual(http_response.status_code, 201)
 #
 
 
