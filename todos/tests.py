@@ -267,29 +267,46 @@ class TestAuthenicatedUserPostTodo(ApiTestCase):
 
     def setUp(self):
         super().setUp()
-        previous_todo_count = Todo.select().count()
+        self.previous_todo_count = Todo.select().count()
 
         user = User.get(User.id == 1)
         token_serializer = Serializer(SECRET_KEY)
-        self.token = token_serializer.dumps({'id': user.id})
+        self.token = token_serializer.dumps({'id': user.id}).decode()
 
     def test_todo_collection_post_todo_success(self):
         with app.test_client() as client:
             http_response = client.post(
                 "/api/v1/todos/",
                 headers={
-                    'Authorization': f"Bearer {self.token}"
+                    'authorization': f"Bearer {self.token}",
+                    'content_type': "application/json"
                 },
-                content_type="application/json",
                 data={
                     "name": "Must do a todo",
                     "user": 1
                 }
             )
         current_todo_count = Todo.select().count()
-
         self.assertEqual(http_response.status_code, 201)
-        self.assertGreater(current_todo_count, previous_todo_count)
+        self.assertGreater(current_todo_count, self.previous_todo_count)
+        self.assertEqual(http_response.location, 'http://localhost/api/v1/todos/4')
+
+
+# class TestPostTodo(ApiTestCase):
+#     '''Verify that an API user successfully adds a Todo'''
+#
+#     def test_todo_collection_post_todo_success(self):
+#         with app.test_client() as client:
+#             http_response = client.post(
+#                 "/api/v1/todos/",
+#                 data={
+#                     "name": "Must do a todo",
+#                     "user": 1
+#                 }
+#             )
+#         current_todo_count = Todo.select().count()
+#         self.assertEqual(http_response.status_code, 201)
+#         self.assertGreater(current_todo_count, self.previous_todo_count)
 
 
 

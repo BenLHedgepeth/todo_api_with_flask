@@ -64,7 +64,7 @@ class Todo(_Model):
 
     @property
     def location(self):
-        return f'api/v1/todos/{self.id}'
+        return f'http://localhost/api/v1/todos/{self.id}'
 
 def initialize(*args, **kwargs):
     DATABASE.connect(reuse_if_open=True)

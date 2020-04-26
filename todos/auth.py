@@ -21,10 +21,10 @@ def verify_password(username, password):
     if user_verified:
         g.user = api_user
         return True
-    return False
 
 @token_auth.verify_token
 def verify_token(token):
+    # import pdb; pdb.set_trace()
     timed_serializer = Serializer(SECRET_KEY)
     try:
         user = timed_serializer.loads(token)

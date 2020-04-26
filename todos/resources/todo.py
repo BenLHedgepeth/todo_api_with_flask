@@ -51,7 +51,6 @@ class TodoCollection(Resource):
 
     @auth.login_required
     def post(self):
-        import pdb; pdb.set_trace()
         args = self.request_parser.parse_args()
         if not args['name']:
             return make_response(
@@ -60,7 +59,7 @@ class TodoCollection(Resource):
         new_todo = Todo.create(**args)
         return (
             marshal(set_todo_creator(new_todo), todo_fields, 'new_todo'),
-            201, {'Location': f'{new_todo.location}'}
+            201, {'location': f'{new_todo.location}'}
         )
 
 

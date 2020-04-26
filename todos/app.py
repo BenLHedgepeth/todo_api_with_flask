@@ -19,7 +19,7 @@ models.initialize(models.User, models.Todo)
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify(error="str(e)"), 404
+    return jsonify(error=str(e)), 404
 
 @app.errorhandler(400)
 def bad_request(e):
