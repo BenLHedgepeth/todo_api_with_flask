@@ -1,6 +1,6 @@
 from flask import Flask, g, jsonify, render_template, current_app
 
-from config import HOST, PORT, DEBUG, ERROR_404_HELP
+from config import HOST, PORT, DEBUG
 
 from peewee import *
 

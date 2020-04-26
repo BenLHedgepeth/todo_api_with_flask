@@ -12,7 +12,7 @@ from auth import token_auth as auth
 from models import Todo
 
 todo_api = Blueprint("resources.todos", __name__)
-api = Api(todo_api, catch_all_404s=False)
+api = Api(todo_api, serve_challenge_on_401=True)
 
 todo_fields = {
     'name': fields.String,
@@ -22,9 +22,7 @@ todo_fields = {
 
 @auth.error_handler
 def errorhandler():
-    return jsonify({
-            "unauthorized": "Cannot add Todo. Login required."
-        }), 401
+    return jsonify(unauthorized="Cannot add Todo. Login required."), 401
 
 
 class TodoCollection(Resource):
