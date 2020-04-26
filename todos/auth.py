@@ -1,8 +1,11 @@
-from flask import g
+from flask import g, abort
 
 from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
+                          BadSignature, SignatureExpired)
 
 from models import User
+from config import SECRET_KEY
 
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth(scheme="Bearer")
@@ -22,4 +25,10 @@ def verify_password(username, password):
 
 @token_auth.verify_token
 def verify_token(token):
-    pass
+    timed_serializer = Serializer(SECRET_KEY)
+    try:
+        id = timed_serializer.loads(token)
+        api_user = User.get_by_id(id)
+    except (SignatureExpired, BadSignature) as e:
+        abort(400, description=str(e))
+    return True

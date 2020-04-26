@@ -11,6 +11,7 @@ from peewee import *
 from app import app
 from models import User, Todo
 from auth import verify_password
+from config import SECRET_KEY
 
 
 DATABASE = SqliteDatabase(':memory:')
@@ -69,6 +70,28 @@ class TestVerifyPassword(ApiTestCase):
         with app.test_request_context():
             user_verified = verify_password("User_1", 'secret1')
         self.assertTrue(user_verified)
+
+class TestVerifyToken(ApiTestCase):
+    def setUp(self):
+        super().setUp()
+        user = User.get(User.id == 1)
+        token_serializer = Serializer(SECRET_KEY)
+        self.token = token_serializer.dumps({'id': user.id}).decode()
+
+        def test_verify_token_success(self):
+            with app.test_client() as client:
+                http_response = client.post(
+                    "/api/v1/todos",
+                    headers={
+                        'Authorization': f"Bearer {self.token}"
+                    },
+                    content_type="application/json",
+                    data=json.dumps({
+                        "name": "Must do todo",
+                        "user": 1
+                    })
+                )
+            self.assertEqual(http_response.status_code, 201)
 
 
 class TestNoTodoCollection(ApiTestCase):
@@ -194,7 +217,7 @@ class TestApiTokenRequest(ApiTestCase):
         with app.test_client() as client:
             user_credentials = b64encode(b"User_1:secret1").decode()
             http_response = client.get(
-                "/api/v1/users/token",
+                "/api/v1/token",
                 content_type="application/json",
                 headers={
                     'Authorization': f'Basic {user_credentials}'
@@ -224,24 +247,24 @@ class TestUnauthorizedTodoPost(ApiTestCase):
         self.assertEqual(error_response, "Cannot add Todo. Login required.")
 
 
-# class TestAuthenticatedUserTodoPost(ApiTestCase):
-#         def test_issue_api_token(self):
-#             user_credentials = b64encode(b"User_1:secret1").decode()
-#             with app.test_client() as client:
-#                 http_response = client.post(
-#                     "/api/v1/todos/",
-#                     content_type="application/json",
-#                     headers={
-#                         "Authorization": f"Basic {user_credentials}"
-#                     },
-#                     data=json.dumps({
-#                         'name': "Must do todo",
-#                         'user': 1
-#                     })
-#                 )
-#
-#             self.assertEqual(http_response.status_code, 201)
-#
+class TestAuthenticatedUserTodoPost(ApiTestCase):
+        def test_authenticated_user_todo_post(self):
+            user_credentials = b64encode(b"User_1:secret1").decode()
+            with app.test_client() as client:
+                http_response = client.post(
+                    "/api/v1/todos/",
+                    content_type="application/json",
+                    headers={
+                        "Authorization": f"Basic {user_credentials}"
+                    },
+                    data=json.dumps({
+                        'name': "Must do todo",
+                        'user': 1
+                    })
+                )
+
+            self.assertEqual(http_response.status_code, 201)
+
 
 
 

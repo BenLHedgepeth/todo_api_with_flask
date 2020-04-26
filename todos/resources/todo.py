@@ -12,12 +12,13 @@ from auth import token_auth as auth
 from models import Todo
 
 todo_api = Blueprint("resources.todos", __name__)
-api = Api(todo_api)
+api = Api(todo_api, catch_all_404s=False)
 
 todo_fields = {
     'name': fields.String,
     'created_by': fields.String
 }
+
 
 @auth.error_handler
 def errorhandler():

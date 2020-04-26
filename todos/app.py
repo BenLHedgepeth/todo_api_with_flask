@@ -1,5 +1,6 @@
 from flask import Flask, g, jsonify, render_template, current_app
-from config import HOST, PORT, DEBUG
+
+from config import HOST, PORT, DEBUG, ERROR_404_HELP
 
 from peewee import *
 
@@ -18,20 +19,19 @@ models.initialize(models.User, models.Todo)
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify(error=str(e)), 404
+    return jsonify(error="str(e)"), 404
 
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify(error=str(e)), 400
 
-@app.route("/api/v1/users/token")
+@app.route("/api/v1/token")
 @auth.login_required
 def issue_api_token():
     '''NOTE: @login_required must be declared below the Flask route
     or else "g" doesn\'t retain state for this view'''
-    print('user' in dir(g))
     token = g.user.request_token()
-    return jsonify({'token': token})
+    return jsonify(token=token)
 
 @app.route('/')
 def my_todos():

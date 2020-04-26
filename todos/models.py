@@ -33,7 +33,7 @@ class User(_Model):
 
     def request_token(self):
         token_serializer = Serializer(SECRET_KEY)
-        return token_serializer.dumps({'id': self.id})
+        return token_serializer.dumps({'id': self.id}).decode()
 
 
     @classmethod
