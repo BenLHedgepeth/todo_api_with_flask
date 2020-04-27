@@ -35,7 +35,7 @@ class ApiUserCollection(Resource):
         args = self.request_parser.parse_args()
         try:
             new_user = User.create_user(**args)
-        except PasswordMatchError as e:
+        except (PasswordMatchError, ValueError) as e:
             abort(400, description=e)
         else:
             if new_user:

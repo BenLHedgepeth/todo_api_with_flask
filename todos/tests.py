@@ -274,6 +274,7 @@ class TestAuthenicatedUserPostTodo(ApiTestCase):
         self.token = token_serializer.dumps({'id': user.id}).decode()
 
     def test_todo_collection_post_todo_success(self):
+        '''Posting a Todo'''
         with app.test_client() as client:
             http_response = client.post(
                 "/api/v1/todos/",
@@ -287,6 +288,7 @@ class TestAuthenicatedUserPostTodo(ApiTestCase):
                 }
             )
         current_todo_count = Todo.select().count()
+        print(current_todo_count)
         self.assertEqual(http_response.status_code, 201)
         self.assertGreater(current_todo_count, self.previous_todo_count)
         self.assertEqual(http_response.location, 'http://localhost/api/v1/todos/4')

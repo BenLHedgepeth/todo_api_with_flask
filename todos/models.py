@@ -41,6 +41,8 @@ class User(_Model):
         if kwargs['password'] != kwargs['verify_password']:
             raise PasswordMatchError("Verification failed. Try again.")
         else:
+            if not kwargs['username']:
+                raise ValueError("No username provided")
             try:
                 username_taken = cls.get(cls.username == kwargs['username'])
             except cls.DoesNotExist:
