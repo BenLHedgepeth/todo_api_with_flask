@@ -31,4 +31,5 @@ def verify_token(token):
         api_user = User.get_by_id(user['id'])
     except (SignatureExpired, BadSignature) as e:
         abort(400, description=str(e))
+    g.user = api_user
     return True

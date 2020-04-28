@@ -9,13 +9,16 @@ from flask_restful import Api, Resource, fields, marshal, reqparse
 
 from models import User
 
+from .utils import set_todos
 from exceptions import PasswordMatchError
 
 user_api = Blueprint('resources.users', __name__)
-api = Api(user_api)
+api = Api(user_api, serve_challenge_on_401=True)
 
 user_fields = {
-    'username': fields.String
+    'id': fields.String,
+    'username': fields.String,
+    'todos_created': fields.List(fields.String)
 }
 
 class ApiUserCollection(Resource):
@@ -29,7 +32,7 @@ class ApiUserCollection(Resource):
         api_users = User.select()
         if not api_users.count():
             abort(404, description="No users currently exist")
-        return [marshal(api_user, user_fields) for api_user in api_users]
+        return [marshal(set_todos(api_user), user_fields) for api_user in api_users]
 
     def post(self):
         args = self.request_parser.parse_args()
@@ -61,7 +64,7 @@ class ApiUser(Resource):
         except User.DoesNotExist:
             abort(404, description="Cannot locate User with that ID")
         else:
-            return marshal(api_user, user_fields, envelope='user'), 200
+            return marshal(set_todos(api_user), user_fields, envelope='user'), 200
 
 api.add_resource(
     ApiUser,

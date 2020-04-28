@@ -1,11 +1,12 @@
 
 import json
 
-from flask import Blueprint, jsonify, abort, make_response
+from flask import Blueprint, jsonify, abort, make_response, g
 
 from flask_restful import Api, Resource, fields, marshal, reqparse
 
 from .utils import set_todo_creator
+from models import User
 from auth import token_auth as auth
 
 '''todo.py have access to models because resources inherents todos package modules???'''
@@ -54,15 +55,13 @@ class TodoCollection(Resource):
         args = self.request_parser.parse_args()
         if not args['name']:
             return make_response(
-                {'invalid_request': "Invalid todo provided"}, 400
+                jsonify(invalid_request="Invalid todo provided"), 400
             )
         new_todo = Todo.create(**args)
         return (
             marshal(set_todo_creator(new_todo), todo_fields, 'new_todo'),
             201, {'location': f'{new_todo.location}'}
         )
-
-
 
 api.add_resource(
     TodoCollection,
@@ -72,6 +71,14 @@ api.add_resource(
 
 class ApiTodo(Resource):
 
+    put_request_parser = reqparse.RequestParser()
+    put_request_parser.add_argument(
+        'name',
+        required=True,
+        location=['form', 'json'],
+        help="Cannot accept a blank description"
+    )
+
     def get(self, id):
         try:
             api_todo = Todo.get_by_id(id)
@@ -80,8 +87,23 @@ class ApiTodo(Resource):
         return marshal(set_todo_creator(api_todo), todo_fields, envelope="todo")
 
     @auth.login_required
-    def put(self):
-        pass
+    def put(self, id):
+        import pdb; pdb.set_trace()
+        try:
+            user_todo = Todo.select().join(User).where(
+                (Todo.id == id) & (User.id == g.user.id)
+            ).get()
+        except Todo.DoesNotExist:
+            abort(404, description="That todo no longer exists")
+        else:
+            args = self.put_request_parser.parse_args()
+            if not args['name']:
+                abort(400, description="Must provide a todo description")
+            updated_todo = user_todo.update(**args, user=g.user)
+            updated_todo.execute()
+            return marshal(updated_todo, todo_fields, 'todo'), 204
+
+
 
 api.add_resource(
     ApiTodo,
