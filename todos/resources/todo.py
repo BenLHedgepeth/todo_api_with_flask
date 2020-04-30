@@ -2,7 +2,7 @@
 import json
 
 from flask import Blueprint, jsonify, abort, make_response, g
-
+from peewee import *
 from flask_restful import Api, Resource, fields, marshal, reqparse
 
 from .utils import set_todo_creator
@@ -28,19 +28,20 @@ def errorhandler():
 
 class TodoCollection(Resource):
 
-    request_parser = reqparse.RequestParser()
-    request_parser.add_argument(
-        'name',
-        required=True,
-        location=['form', 'json'],
-        help="Add the name of Todo"
-    )
-    request_parser.add_argument(
-        'user',
-        required=True,
-        location=['form', 'json'],
-        help="Add the user of the todo"
-    )
+    def __init__(self):
+        self.request_parser = reqparse.RequestParser()
+        self.request_parser.add_argument(
+            'name',
+            required=True,
+            location=['form', 'json'],
+            help="Add the name of Todo"
+        )
+        self.request_parser.add_argument(
+            'user',
+            required=True,
+            location=['form', 'json'],
+            help="Add the user of the todo"
+        )
 
     def get(self):
         all_todos = Todo.select()
@@ -71,13 +72,14 @@ api.add_resource(
 
 class ApiTodo(Resource):
 
-    put_request_parser = reqparse.RequestParser()
-    put_request_parser.add_argument(
-        'name',
-        required=True,
-        location=['form', 'json'],
-        help="Cannot accept a blank description"
-    )
+    def __init__(self):
+        self.put_request_parser = reqparse.RequestParser()
+        self.put_request_parser.add_argument(
+            'name',
+            required=True,
+            location=['form', 'json'],
+            help="Cannot accept a blank description"
+        )
 
     def get(self, id):
         try:
@@ -88,7 +90,6 @@ class ApiTodo(Resource):
 
     @auth.login_required
     def put(self, id):
-        import pdb; pdb.set_trace()
         try:
             user_todo = Todo.select().join(User).where(
                 (Todo.id == id) & (User.id == g.user.id)
@@ -97,12 +98,30 @@ class ApiTodo(Resource):
             abort(404, description="That todo no longer exists")
         else:
             args = self.put_request_parser.parse_args()
+            print(args['name'])
             if not args['name']:
                 abort(400, description="Must provide a todo description")
-            updated_todo = user_todo.update(**args, user=g.user)
-            updated_todo.execute()
-            return marshal(updated_todo, todo_fields, 'todo'), 204
+            todo_exists = Todo.get_or_none(Todo.name == args['name'])
+            if todo_exists:
+                abort(400, description="That todo already exists")
+            else:
+                user_todo.name = args['name']
+                user_todo.save()
 
+            return marshal(user_todo, todo_fields, 'todo'), 204
+
+
+    @auth.login_required
+    def delete(self, id):
+        try:
+            user_todo = Todo.select().where(
+                (Todo.id == id) & (Todo.user == g.user)
+            ).get()
+        except Todo.DoesNotExist:
+            pass
+        else:
+            user_todo.delete_instance()
+        return make_response(" ", 204)
 
 
 api.add_resource(
