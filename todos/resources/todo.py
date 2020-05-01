@@ -54,7 +54,8 @@ class TodoCollection(Resource):
     @auth.login_required
     def post(self):
         args = self.request_parser.parse_args()
-        if not args['name']:
+        argument_name = args['name'].strip()
+        if not argument_name:
             return make_response(
                 jsonify(invalid_request="Invalid todo provided"), 400
             )
