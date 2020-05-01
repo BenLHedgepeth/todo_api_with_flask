@@ -55,8 +55,6 @@ class User(_Model):
                 return False
 
 
-
-
 class Todo(_Model):
     name = CharField(unique=True)
     user = ForeignKeyField(User, related_name="todos")

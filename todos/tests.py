@@ -291,24 +291,26 @@ class TestUpdateTodoResource(ApiTestCase):
 
 class TestDeleteTodoResource(ApiTestCase):
     '''Verify that a client successfully deletes a todo.'''
+
     def setUp(self):
         super().setUp()
         self.previous_todo_count = Todo.select().count()
-        user = User.get(User.username == "User_1")
+        user = User.get_by_id(1)
         token_serializer = Serializer(SECRET_KEY)
         self.token = token_serializer.dumps({'id': user.id}).decode()
 
     def test_delete_todo_success(self):
         with app.test_client() as client:
             http_response = client.delete(
-                'api/v1/todos/1'
-            ),
-            headers = {
-                "authenication": f"Bearer {self.token}"
-            }
-        current_todo_count = Todo.select().count()
-        print(current_todo_count)
+                "/api/v1/todos/1",
+                headers={
+                    'authorization': f"Bearer {self.token}"
+                }
+            )
+            current_todo_count = Todo.select().count()
+
         self.assertLess(current_todo_count, self.previous_todo_count)
+        self.assertEqual(http_response.status_code, 204)
 
 if __name__ == '__main__':
     unittest.main()

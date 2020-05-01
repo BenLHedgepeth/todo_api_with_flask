@@ -98,7 +98,6 @@ class ApiTodo(Resource):
             abort(404, description="That todo no longer exists")
         else:
             args = self.put_request_parser.parse_args()
-            print(args['name'])
             if not args['name']:
                 abort(400, description="Must provide a todo description")
             todo_exists = Todo.get_or_none(Todo.name == args['name'])
@@ -107,13 +106,12 @@ class ApiTodo(Resource):
             else:
                 user_todo.name = args['name']
                 user_todo.save()
-
             return marshal(user_todo, todo_fields, 'todo'), 204
-
 
     @auth.login_required
     def delete(self, id):
         try:
+            import pdb; pdb.set_trace()
             user_todo = Todo.select().where(
                 (Todo.id == id) & (Todo.user == g.user)
             ).get()
@@ -122,7 +120,6 @@ class ApiTodo(Resource):
         else:
             user_todo.delete_instance()
         return make_response(" ", 204)
-
 
 api.add_resource(
     ApiTodo,
