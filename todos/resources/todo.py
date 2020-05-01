@@ -111,7 +111,6 @@ class ApiTodo(Resource):
     @auth.login_required
     def delete(self, id):
         try:
-            import pdb; pdb.set_trace()
             user_todo = Todo.select().where(
                 (Todo.id == id) & (Todo.user == g.user)
             ).get()
