@@ -18,7 +18,6 @@ from config import SECRET_KEY
 DATABASE = SqliteDatabase(':memory:')
 
 
-
 class ApiTestCase(unittest.TestCase):
     '''Create tables and instantiate database'''
 
@@ -123,14 +122,12 @@ class TestCreateNewApiUserResource(ApiTestCase):
                 })
             )
             new_user = http_response.get_json()['user']['username']
-            new_user_url = http_response.headers.get("Location")
 
         current_user_count = User.select().count()
 
         self.assertEqual(http_response.status_code, 201)
         self.assertGreater(current_user_count, self.previous_user_count)
         self.assertEqual(new_user, "User_101")
-        self.assertEqual(new_user_url, 'http://localhost/api/v1/users/3/')
 
 
 class TestInvalidUserCredentials(ApiTestCase):
@@ -150,6 +147,33 @@ class TestInvalidUserCredentials(ApiTestCase):
             )
 
         self.assertEqual(http_response.status_code, 400)
+
+class TestUserTodoPostNoToken(ApiTestCase):
+    '''Verify that an API user cannot create a Todo
+    without an API token.'''
+
+    def setUp(self):
+        super().setUp()
+        self.login_creds = b64encode(b"User_2:secret2").decode()
+
+    def test_post_todo_fail_no_token(self):
+        with app.test_client() as client:
+            http_response = client.post(
+                'api/v1/todos/',
+                headers={
+                    'authorization': f"Basic {self.login_creds}"
+                },
+                json={
+                    "name": "A simple todo",
+                    "user": 2
+                }
+            )
+            unauthorized = http_response.get_json()['unauthorized']
+
+        self.assertEqual(http_response.status_code, 401)
+        self.assertEqual(
+            unauthorized, "Cannot add Todo. Access token required."
+        )
 
 
 class TestAuthenicatedUserPostTodo(ApiTestCase):
@@ -182,7 +206,6 @@ class TestAuthenicatedUserPostTodo(ApiTestCase):
         current_todo_count = Todo.select().count()
         self.assertEqual(http_response.status_code, 201)
         self.assertGreater(current_todo_count, self.previous_todo_count)
-        self.assertEqual(http_response.location, 'http://localhost/api/v1/todos/4')
 
     def test_todo_collection_post_todo_fail(self):
         '''Verify that a client receives a 400 status code after
@@ -286,7 +309,6 @@ class TestUpdateTodoResource(ApiTestCase):
             )
             json_data = http_response.get_json()
         self.assertEqual(http_response.status_code, 400)
-
 
 
 class TestDeleteTodoResource(ApiTestCase):

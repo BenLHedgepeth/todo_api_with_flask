@@ -4,7 +4,7 @@
       <label ng-hide="editing" ng-click="editing=true">{{todo.name}}</label>
       <input ng-show="editing" ng-blur="editing = false" class="editing-label" type="text" ng-model="todo.name" ng-change="todo.edited = true"/>
       <div class="actions">
-        <a href="/" ng-click="saveTodos()">Save</a>
+        <a href="{{ url_for('resources.todos') }}" ng-click="saveTodos()">Save</a>
         <a href="" class="delete" ng-click="deleteTodo(todo, $index)">Delete</a>
       </div>
     </div>

@@ -17,13 +17,13 @@ api = Api(todo_api, serve_challenge_on_401=True)
 
 todo_fields = {
     'name': fields.String,
-    'created_by': fields.String
+    'user': fields.String
 }
 
 
 @auth.error_handler
-def errorhandler():
-    return jsonify(unauthorized="Cannot add Todo. Login required."), 401
+def error_handler():
+    return jsonify(unauthorized="Cannot add Todo. Access token required."), 401
 
 
 class TodoCollection(Resource):
@@ -47,9 +47,9 @@ class TodoCollection(Resource):
         all_todos = Todo.select()
         if not all_todos:
             abort(404, description="No todos currently exist.")
-        all_todos = ([marshal(set_todo_creator(todo), todo_fields)
+        all_todos = ([marshal(todo, todo_fields)
                         for todo in all_todos])
-        return {'todos': all_todos}
+        return make_response(jsonify({'todos': all_todos}))
 
     @auth.login_required
     def post(self):
@@ -60,9 +60,8 @@ class TodoCollection(Resource):
                 jsonify(invalid_request="Invalid todo provided"), 400
             )
         new_todo = Todo.create(**args)
-        return (
-            marshal(set_todo_creator(new_todo), todo_fields, 'new_todo'),
-            201, {'location': f'{new_todo.location}'}
+        return (marshal(new_todo, todo_fields, 'new_todo'),
+            201, {'location': f''} #<<<< fix
         )
 
 api.add_resource(
@@ -74,6 +73,7 @@ api.add_resource(
 class ApiTodo(Resource):
 
     def __init__(self):
+        '''Parse arguments for incoming PUT requests'''
         self.put_request_parser = reqparse.RequestParser()
         self.put_request_parser.add_argument(
             'name',
@@ -99,7 +99,8 @@ class ApiTodo(Resource):
             abort(404, description="That todo no longer exists")
         else:
             args = self.put_request_parser.parse_args()
-            if not args['name']:
+            argument_name = args['name'].strip()
+            if not argument_name:
                 abort(400, description="Must provide a todo description")
             todo_exists = Todo.get_or_none(Todo.name == args['name'])
             if todo_exists:

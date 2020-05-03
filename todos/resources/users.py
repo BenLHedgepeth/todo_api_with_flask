@@ -18,7 +18,7 @@ api = Api(user_api, serve_challenge_on_401=True)
 user_fields = {
     'id': fields.String,
     'username': fields.String,
-    'todos_created': fields.List(fields.String)
+    'todos': fields.List(fields.String)
 }
 
 class ApiUserCollection(Resource):

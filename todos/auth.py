@@ -29,6 +29,6 @@ def verify_token(token):
         user = timed_serializer.loads(token)
         api_user = User.get_by_id(user['id'])
     except (SignatureExpired, BadSignature) as e:
-        abort(400, description=str(e))
+        return False
     g.user = api_user
     return True

@@ -1,5 +1,7 @@
 import datetime
 
+from flask import url_for
+
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
 from peewee import *
@@ -22,7 +24,7 @@ class User(_Model):
     password = CharField()
 
     def __str__(self):
-        return self.username
+        return url_for('resources.users.user', id=self.id)
 
     @staticmethod
     def set_password(password):
@@ -60,11 +62,8 @@ class Todo(_Model):
     user = ForeignKeyField(User, related_name="todos")
 
     def __str__(self):
-        return self.name
+        return url_for('resources.todos.todo', id=self.id)
 
-    @property
-    def location(self):
-        return f'http://localhost/api/v1/todos/{self.id}'
 
 def initialize(*args, **kwargs):
     DATABASE.connect(reuse_if_open=True)
